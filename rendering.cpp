@@ -29,19 +29,19 @@ GLuint createShaderProgram(const char *vertexShaderSource, const char *fragmentS
 
 
 // Vertex shader source code
-const char *vertexShaderSourceGlobal = R"(
+const char *passThroughVertexShaderSource = R"(
     #version 120
     attribute vec2 aPosition;
     void main() {
-        gl_Position = vec4(aPosition, 0.0, 1.0);
+        gl_Position = gl_ModelViewProjectionMatrix * vec4(aPosition, 0.0, 1.0);
     }
 )";
 
-// Fragment shader source code
-const char *fragmentShaderSourceGlobal = R"(
+
+const char *passThroughFragmentShaderSource = R"(
     #version 120
     void main() {
-        gl_FragColor = (0.0f, 0.0f, 1.0f, 1.0f);
+        gl_FragColor = vec4(0, 0, 1, 1); // Set a fixed color for particles (blue)
     }
 )";
 
@@ -137,7 +137,7 @@ GLFWwindow *initGLFW() {
     // Set up OpenGL
     setupOpenGL(window_width, window_height);
 
-    shaderProgram = createShaderProgram(vertexShaderSourceGlobal, fragmentShaderSourceGlobal);
+    shaderProgram = createShaderProgram(passThroughVertexShaderSource, passThroughFragmentShaderSource);
 
     return window;
 }
@@ -172,6 +172,9 @@ void drawWorldBoundaries(float squareWidth) {
 }
 
 void cleanUpScene() {
+
+    glDetachShader(shaderProgram, vertexShader);
+    glDetachShader(shaderProgram, fragmentShader);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     glDeleteProgram(shaderProgram);
@@ -240,11 +243,13 @@ GLuint createShader(GLenum type, const char *source) {
 
 // Create a shader program by linking vertex and fragment shaders
 GLuint createShaderProgram(const char *vertexShaderSource, const char *fragmentShaderSource) {
-    GLuint vertexShader = createShader(GL_VERTEX_SHADER, vertexShaderSource);
-    GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+    vertexShader = createShader(GL_VERTEX_SHADER, vertexShaderSource);
+    fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
+
+    glBindAttribLocation(program, 0, "aPosition");
     glLinkProgram(program);
 
     GLint status;
@@ -256,12 +261,6 @@ GLuint createShaderProgram(const char *vertexShaderSource, const char *fragmentS
         glDeleteProgram(program);
         return 0;
     }
-
-    // Detach and delete shaders after linking
-    glDetachShader(program, vertexShader);
-    glDetachShader(program, fragmentShader);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
 
     return program;
 }

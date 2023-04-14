@@ -8,7 +8,7 @@
 
 static const float WORLD_SIZE = 40.0f;
 
-b2Body * createWorldBoundaries(b2World &world, float squareWidth);
+b2Body *createWorldBoundaries(b2World &world, float squareWidth);
 
 void clampCreaturePositions(std::list<Creature *> creatureList, float minX, float maxX, float minY, float maxY) {
     for (Creature *creature: creatureList) {
@@ -40,11 +40,11 @@ int main(int argc, char **argv) {
 
     // Create a dynamic body
     auto *creature1 = new Creature();
-    creature1->createBodyPart(&world, 5.0f, 5.0f, 1.0f, 1.0f);
+    creature1->addBodyPart(Creature::createBodyPart(&world, creature1, 5.0f, 5.0f, 1.0f, 1.0f));
 
 
     auto *creature2 = new Creature();
-    creature2->createBodyPart(&world, 15.0f, 5.0f, 2.0f, 2.0f);
+    creature1->addBodyPart(Creature::createBodyPart(&world, creature2, 15.0f, 5.0f, 2.0f, 2.0f));
 
     std::list<Creature *> creatureList;
     creatureList.push_back(creature1);
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 }
 
 
-b2Body * createWorldBoundaries(b2World &world, float squareWidth) {
+b2Body *createWorldBoundaries(b2World &world, float squareWidth) {
 
     b2BodyDef squareBodyDef;
     squareBodyDef.type = b2_staticBody;
@@ -267,7 +267,7 @@ b2Body * createWorldBoundaries(b2World &world, float squareWidth) {
 
     squareFixtureDef.shape = &rightEdge;
     squareBody->CreateFixture(&squareFixtureDef);
-    
+
     return squareBody;
 }
 

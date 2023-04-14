@@ -63,6 +63,7 @@ Creature* Creature::reproduce(b2World* world, float mutationRate) const  {
     // Create a new Creature using the new body parts
     auto* newCreature = new Creature();
 
+
     for (const b2Body* sourceBody : getBodyParts()) {
         b2Body* newBody = copyBody(sourceBody, world, mutationRate);
 
@@ -84,6 +85,17 @@ Creature* Creature::reproduce(b2World* world, float mutationRate) const  {
         newCreature->addBodyPart(newBody);
     }
 
+    const float newBodyPartProbability = 0.1f; // Adjust this value to control the likelihood of generating a new BodyPart
+    float randomValue = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    if (randomValue < newBodyPartProbability) {
+        // Create a new randomly generated BodyPart
+        b2Body* newBody = Creature::createBodyPart(world, newCreature, 4 * ((float)rand() / RAND_MAX) - 2,
+                                         4 * ((float)rand() / RAND_MAX) - 2,
+                                         2 * ((float)rand() / RAND_MAX),
+                                         2 * ((float)rand() / RAND_MAX));
+        newCreature->addBodyPart(newBody);
+    }
+
     for (b2Body *newBody: newCreature->getBodyParts()) {
         b2Vec2 newPosition = newBody->GetPosition() + b2Vec2(offsetX, offsetY);
         newBody->SetTransform(newPosition, newBody->GetAngle());
@@ -96,38 +108,4 @@ Creature* Creature::reproduce(b2World* world, float mutationRate) const  {
 
 
     return newCreature;
-}
-
-void Creature::createBodyPart(b2World* world, float x, float y, float width, float height) {
-    // Create the body definition
-    b2BodyDef bodyDef;
-    bodyDef.type = b2_dynamicBody;
-    bodyDef.position.Set(x, y);
-
-    // Create the body in the world
-    b2Body* body = world->CreateBody(&bodyDef);
-
-    // Create the shape
-    b2PolygonShape dynamicBox;
-    dynamicBox.SetAsBox(width / 2.0f, height / 2.0f);
-
-    // Create the fixture
-    b2FixtureDef fixtureDef;
-    fixtureDef.shape = &dynamicBox;
-    fixtureDef.density = 1.0f;
-    fixtureDef.friction = 0.3f;
-
-    // Attach the fixture to the body
-    body->CreateFixture(&fixtureDef);
-
-    // Create the BodyData object with the specified color
-    auto* bodyData = new BodyData(0.0f, 1.0f, 0.0f, 1.0f);
-
-    bodyData->parentCreature = this;
-
-    // Set the user data of the b2Body
-    body->SetUserData(bodyData);
-
-    // Add the body to the creature
-    addBodyPart(body);
 }

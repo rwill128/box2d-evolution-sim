@@ -41,9 +41,47 @@ const char *passThroughVertexShaderSource = R"(
 const char *passThroughFragmentShaderSource = R"(
     #version 120
     void main() {
+float Pi = 6.28318530718; // Pi*2
+
+    // GAUSSIAN BLUR SETTINGS {{{
+    float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+    float Quality = 3.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+    float Size = 8.0; // BLUR SIZE (Radius)
+    // GAUSSIAN BLUR SETTINGS }}}
+
+    vec2 Radius = Size/iResolution.xy;
+
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord/iResolution.xy;
+    // Pixel colour
+    vec4 Color = texture(iChannel0, uv);
+
+    // Blur calculations
+    for( float d=0.0; d<Pi; d+=Pi/Directions)
+    {
+		for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality)
+        {
+			Color += texture( iChannel0, uv+vec2(cos(d),sin(d))*Radius*i);
+        }
+    }
+
+    // Output to screen
+    Color /= Quality * Directions - 15.0;
+    fragColor =  Color;
         gl_FragColor = vec4(0, 0, 1, 1); // Set a fixed color for particles (blue)
     }
 )";
+
+const char *testfragmentShaderSource = R"(
+    #version 120
+    uniform sampler2D uTexture;
+    varying vec2 vTexCoord;
+    void main() {
+        vec4 textureColor = texture2D(uTexture, vTexCoord);
+        gl_FragColor = textureColor;
+    }
+)";
+
 
 GLuint vertexShader;
 GLuint fragmentShader;
@@ -137,7 +175,7 @@ GLFWwindow *initGLFW() {
     // Set up OpenGL
     setupOpenGL(window_width, window_height);
 
-    shaderProgram = createShaderProgram(passThroughVertexShaderSource, passThroughFragmentShaderSource);
+//    shaderProgram = createShaderProgram(passThroughVertexShaderSource, testfragmentShaderSource);
 
     return window;
 }
@@ -207,7 +245,7 @@ void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *part
     glPointSize(3.0f);
     glColor3f(0, 0, 1);
     // Use the shader program
-    glUseProgram(shaderProgram);
+//    glUseProgram(shaderProgram);
 
     // Draw the particles
     glBegin(GL_POINTS);
@@ -218,7 +256,7 @@ void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *part
     glEnd();
 
     // Disable the shader program
-    glUseProgram(0);
+//    glUseProgram(0);
 
 }
 

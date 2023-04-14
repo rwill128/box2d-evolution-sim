@@ -18,7 +18,6 @@
 
 void drawCreature(const b2Body *body, float d);
 GLFWwindow* initGLFW();
-void setupOpenGL();
 void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *particleSystem);
 
 #endif //LIQUIDFUN_EVO_SIM_RENDERING_H

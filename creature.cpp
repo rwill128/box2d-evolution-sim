@@ -6,8 +6,6 @@
 #include <list>
 #include <Box2D/Box2D.h>
 
-
-
 void Creature::createBodyPart(b2World* world, float x, float y, float width, float height) {
     // Create the body definition
     b2BodyDef bodyDef;

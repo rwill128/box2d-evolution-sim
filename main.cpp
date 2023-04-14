@@ -6,9 +6,9 @@
 #include "rendering.h"
 
 
-static const float WORLD_SIZE = 30.0f;
+static const float WORLD_SIZE = 40.0f;
 
-void createWorldBoundaries(b2World &world, float squareWidth);
+b2Body * createWorldBoundaries(b2World &world, float squareWidth);
 
 void clampCreaturePositions(std::list<Creature *> creatureList, float minX, float maxX, float minY, float maxY) {
     for (Creature *creature: creatureList) {
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     b2Vec2 gravity(0.0f, -10.0f);
     b2World world(gravity);
 
-    createWorldBoundaries(world, WORLD_SIZE);
+    b2Body *worldBoundaries = createWorldBoundaries(world, WORLD_SIZE);
 
 //    WaterContactListener myContactListener;
 //    world.SetContactListener(&myContactListener);
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
         clampCreaturePositions(creatureList, minX, maxX, minY, maxY);
 
         // Define the minimum number of particles
-        const int32 minParticleCount = 200;
+        const int32 minParticleCount = 100;
 
         // Check the number of particles in the particleSystem during the main loop
         int32 currentParticleCount = particleSystem->GetParticleCount();
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
         creatureList.splice(creatureList.end(), newCreatureList);
 
         // Draw the scene
-        drawScene(creatureList, particleSystem);
+        drawScene(creatureList, particleSystem, WORLD_SIZE);
 
         for (auto it = creatureList.begin(); it != creatureList.end(); /* no increment here */) {
             Creature *creatureToCheck = *it;
@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
 
     creatureList.clear();
 
-
+    cleanUpScene();
     // Clean up GLFW
     glfwDestroyWindow(window);
     glfwTerminate();
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 }
 
 
-void createWorldBoundaries(b2World &world, float squareWidth) {
+b2Body * createWorldBoundaries(b2World &world, float squareWidth) {
 
     b2BodyDef squareBodyDef;
     squareBodyDef.type = b2_staticBody;
@@ -267,5 +267,7 @@ void createWorldBoundaries(b2World &world, float squareWidth) {
 
     squareFixtureDef.shape = &rightEdge;
     squareBody->CreateFixture(&squareFixtureDef);
+    
+    return squareBody;
 }
 

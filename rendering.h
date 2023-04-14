@@ -12,12 +12,11 @@
 #include <Box2D/Particle/b2ParticleSystem.h>
 #include <Box2D/Box2D.h>
 #include <iostream>
-#include "rendering.h"
 
 
-
+void cleanUpScene();
+void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *particleSystem, float worldSize);
 void drawCreature(const b2Body *body, float d);
 GLFWwindow* initGLFW();
-void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *particleSystem);
 
 #endif //LIQUIDFUN_EVO_SIM_RENDERING_H

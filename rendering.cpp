@@ -1,13 +1,14 @@
 //
 // Created by rwill on 4/14/2023.
 //
+#include <GL/glew.h>
 #include <iostream>
 #include <Box2D/Box2D.h>
 #include <Box2D/Particle/b2ParticleSystem.h>
 #include <GLFW/glfw3.h>
-#include <GL/gl.h>
-#include "creature.h"
 #include "rendering.h"
+// Include necessary headers
+#include <iostream>
 
 
 #ifndef M_PI
@@ -20,7 +21,35 @@ float cameraY = 0.0f;
 // Keyboard state
 bool keys[GLFW_KEY_LAST] = {false};
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+
+// Function prototypes
+GLuint createShader(GLenum type, const char *source);
+
+GLuint createShaderProgram(const char *vertexShaderSource, const char *fragmentShaderSource);
+
+
+// Vertex shader source code
+const char *vertexShaderSourceGlobal = R"(
+    #version 120
+    attribute vec2 aPosition;
+    void main() {
+        gl_Position = vec4(aPosition, 0.0, 1.0);
+    }
+)";
+
+// Fragment shader source code
+const char *fragmentShaderSourceGlobal = R"(
+    #version 120
+    void main() {
+        gl_FragColor = (0.0f, 0.0f, 1.0f, 1.0f);
+    }
+)";
+
+GLuint vertexShader;
+GLuint fragmentShader;
+GLuint shaderProgram;
+
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
         keys[key] = true;
     } else if (action == GLFW_RELEASE) {
@@ -63,7 +92,7 @@ void setupOpenGL(int screenWidth, int screenHeight) {
 }
 
 
-GLFWwindow* initGLFW() {
+GLFWwindow *initGLFW() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return nullptr;
@@ -73,8 +102,8 @@ GLFWwindow* initGLFW() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
     // Get the dimensions of the primary monitor
-    GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* vidmode = glfwGetVideoMode(primary_monitor);
+    GLFWmonitor *primary_monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode *vidmode = glfwGetVideoMode(primary_monitor);
     int desktop_width = vidmode->width;
     int desktop_height = vidmode->height;
 
@@ -99,14 +128,56 @@ GLFWwindow* initGLFW() {
 
     glfwSetKeyCallback(window, keyCallback);
 
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        std::cerr << "Error initializing GLEW: " << glewGetErrorString(err) << std::endl;
+        exit(1);
+    }
+
     // Set up OpenGL
     setupOpenGL(window_width, window_height);
+
+    shaderProgram = createShaderProgram(vertexShaderSourceGlobal, fragmentShaderSourceGlobal);
 
     return window;
 }
 
+void drawWorldBoundaries(float squareWidth) {
 
-void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *particleSystem) {
+    float left = 0, right = squareWidth, top = squareWidth, bottom = 0;
+
+    // Draw top edge
+    glBegin(GL_LINES);
+    glVertex2f(left, top);
+    glVertex2f(right, top);
+    glEnd();
+
+    // Draw bottom edge
+    glBegin(GL_LINES);
+    glVertex2f(left, bottom);
+    glVertex2f(right, bottom);
+    glEnd();
+
+    // Draw left edge
+    glBegin(GL_LINES);
+    glVertex2f(left, bottom);
+    glVertex2f(left, top);
+    glEnd();
+
+    // Draw right edge
+    glBegin(GL_LINES);
+    glVertex2f(right, bottom);
+    glVertex2f(right, top);
+    glEnd();
+}
+
+void cleanUpScene() {
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+    glDeleteProgram(shaderProgram);
+}
+
+void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *particleSystem, float worldSize) {
 
     updateCamera();
 
@@ -116,8 +187,12 @@ void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *part
 
 
     // Clear the screen
-    glClearColor(1, 1, 1, 1);
+    glClearColor(.8, .8, .8, 1);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw world boundaries
+    glColor3f(0, 0, 0);
+    drawWorldBoundaries(worldSize);
 
     // Draw the dynamic box
     for (Creature *creature: creatureList) {
@@ -127,9 +202,11 @@ void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *part
     }
 
     glPointSize(3.0f);
+    glColor3f(0, 0, 1);
+    // Use the shader program
+    glUseProgram(shaderProgram);
 
     // Draw the particles
-    glColor3f(0, 0, 1);
     glBegin(GL_POINTS);
     for (int i = 0; i < particleSystem->GetParticleCount(); ++i) {
         b2Vec2 particlePosition = particleSystem->GetPositionBuffer()[i];
@@ -137,6 +214,56 @@ void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *part
     }
     glEnd();
 
+    // Disable the shader program
+    glUseProgram(0);
+
+}
+
+// Create and compile a shader
+GLuint createShader(GLenum type, const char *source) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+
+    GLint status;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+    if (!status) {
+        char infoLog[512];
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        std::cerr << "Error compiling shader: " << infoLog << std::endl;
+        glDeleteShader(shader);
+        return 0;
+    }
+
+    return shader;
+}
+
+// Create a shader program by linking vertex and fragment shaders
+GLuint createShaderProgram(const char *vertexShaderSource, const char *fragmentShaderSource) {
+    GLuint vertexShader = createShader(GL_VERTEX_SHADER, vertexShaderSource);
+    GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    GLint status;
+    glGetProgramiv(program, GL_LINK_STATUS, &status);
+    if (!status) {
+        char infoLog[512];
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        std::cerr << "Error linking shader program: " << infoLog << std::endl;
+        glDeleteProgram(program);
+        return 0;
+    }
+
+    // Detach and delete shaders after linking
+    glDetachShader(program, vertexShader);
+    glDetachShader(program, fragmentShader);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return program;
 }
 
 void drawPolygon(const b2PolygonShape *polygon, float scale = 1.0f) {

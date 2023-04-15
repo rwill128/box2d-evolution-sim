@@ -4,9 +4,11 @@
 #include <vector>
 #include "creature.h"
 #include "rendering.h"
+#include <random>
+#include <chrono>
 
 
-static const float WORLD_SIZE = 40.0f;
+static const float WORLD_SIZE = 100.0f;
 
 b2Body *createWorldBoundaries(b2World &world, float squareWidth);
 
@@ -30,10 +32,10 @@ int main(int argc, char **argv) {
 
 
     // Create a world with gravity
-    b2Vec2 gravity(0.0f, -10.0f);
+    b2Vec2 gravity(0.0f, -1.0f);
     b2World world(gravity);
 
-    b2Body *worldBoundaries = createWorldBoundaries(world, WORLD_SIZE);
+    createWorldBoundaries(world, WORLD_SIZE);
 
 //    WaterContactListener myContactListener;
 //    world.SetContactListener(&myContactListener);
@@ -55,8 +57,8 @@ int main(int argc, char **argv) {
     particleSystemDef.radius = 0.1f;
 //    particleSystemDef.gravityScale = 0.01f;
 //    particleSystemDef.powderStrength = 3.0f;
-    particleSystemDef.surfaceTensionNormalStrength = 0.0f;
-    particleSystemDef.surfaceTensionPressureStrength = 0.0f;
+    particleSystemDef.surfaceTensionNormalStrength = 1.0f;
+    particleSystemDef.surfaceTensionPressureStrength = 1.0f;
     particleSystemDef.staticPressureStrength = 5.0f;
     b2ParticleSystem *particleSystem = world.CreateParticleSystem(&particleSystemDef);
 
@@ -66,7 +68,7 @@ int main(int argc, char **argv) {
 
     b2ParticleGroupDef particleGroupDef;
     particleGroupDef.shape = &airParticlesShape;
-    particleGroupDef.flags = b2_staticPressureParticle;
+    particleGroupDef.flags = b2_waterParticle;
 //    particleGroupDef.flags = b2_powderParticle;
     particleGroupDef.position.Set(10.0f, 4.0f);
     particleSystem->CreateParticleGroup(particleGroupDef);
@@ -90,7 +92,7 @@ int main(int argc, char **argv) {
         clampCreaturePositions(creatureList, minX, maxX, minY, maxY);
 
         // Define the minimum number of particles
-        const int32 minParticleCount = 100;
+        const int32 minParticleCount = 600;
 
         // Check the number of particles in the particleSystem during the main loop
         int32 currentParticleCount = particleSystem->GetParticleCount();
@@ -135,9 +137,9 @@ int main(int argc, char **argv) {
                 // Perform any desired operations using the contact information
                 auto *bodyData = static_cast<BodyData *>(contactedBody->GetUserData());
                 Creature *parentCreature = bodyData->parentCreature;
-                parentCreature->addToHealth(1.0f);
+                parentCreature->addToHealth(0.01f);
 
-                particleSystem->DestroyParticle(particleIndex);
+//                particleSystem->DestroyParticle(particleIndex);
             }
         }
 
@@ -149,6 +151,24 @@ int main(int argc, char **argv) {
 
         // Process creature growth
         for (Creature *creatureToCheck: creatureList) {
+
+            for (b2Body* movingBody : creatureToCheck->getBodyParts()) {
+
+                // Define the random number generator with a seed based on current time
+                std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+
+                // Define the uniform distribution for angles between 0 and 2π
+                std::uniform_real_distribution<float> angle_distribution(0.0f, 2.0f * b2_pi);
+
+                // Generate a random angle
+                float impulse_orientation = angle_distribution(rng);
+                // Apply the impulse to the body at the specified location and orientation
+                float impulse_magnitude = 1;  // The magnitude of the impulse
+                b2Vec2 impulse_vector = b2Vec2(impulse_magnitude * cos(impulse_orientation),
+                                               impulse_magnitude * sin(impulse_orientation));
+                movingBody->ApplyForceToCenter(impulse_vector, true);
+
+            }
 
             creatureToCheck->addToHealth(-0.02f);
 

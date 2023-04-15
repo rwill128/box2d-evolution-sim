@@ -5,7 +5,6 @@
 #include <iostream>
 #include <Box2D/Box2D.h>
 #include <Box2D/Particle/b2ParticleSystem.h>
-#include <GLFW/glfw3.h>
 #include "rendering.h"
 // Include necessary headers
 #include <iostream>
@@ -228,7 +227,7 @@ void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *part
 
 
     // Clear the screen
-    glClearColor(.8, .8, .8, 1);
+    glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw world boundaries

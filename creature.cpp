@@ -5,8 +5,29 @@
 #include "creature.h"
 #include <list>
 #include <Box2D/Box2D.h>
+#include <random>
 
+b2PolygonShape* getRandomPolygonShape(int maxVertices = 5, float maxLength = 2.0f) {
+    std::mt19937 rng(std::time(0));
+    std::uniform_int_distribution<int> vertexCountDistribution(3, maxVertices);
+    std::uniform_real_distribution<float> angleDistribution(0.0f, 2 * b2_pi);
+    std::uniform_real_distribution<float> lengthDistribution(0.0f, maxLength);
 
+    int vertexCount = vertexCountDistribution(rng);
+    b2Vec2 vertices[b2_maxPolygonVertices];
+
+    for (int i = 0; i < vertexCount; ++i) {
+        float angle = angleDistribution(rng);
+        float length = lengthDistribution(rng);
+        vertices[i].x = length * std::cos(angle);
+        vertices[i].y = length * std::sin(angle);
+    }
+
+    b2PolygonShape polygon;
+    polygon.Set(vertices, vertexCount);
+
+    return &polygon;
+}
 
 b2Body* copyBody(const b2Body* sourceBody, b2World* world, float mutationRate) {
     b2BodyDef bodyDef;
@@ -36,7 +57,7 @@ b2Body* copyBody(const b2Body* sourceBody, b2World* world, float mutationRate) {
         fixtureDef.filter = sourceFixture->GetFilterData();
 
         // Check if fixture shape is a square
-        if (sourceFixture->GetShape()->GetType() == b2Shape::e_polygon && ((b2PolygonShape*)sourceFixture->GetShape())->GetVertexCount() == 4) {
+        if (sourceFixture->GetShape()->GetType() == b2Shape::e_polygon) {
             auto* polygonShape = (b2PolygonShape*)sourceFixture->GetShape();
 
             // Mutate the size of the square
@@ -50,6 +71,23 @@ b2Body* copyBody(const b2Body* sourceBody, b2World* world, float mutationRate) {
 
             fixtureDef.shape = polygonShape;
         }
+
+        newBody->CreateFixture(&fixtureDef);
+    }
+
+    const float newFixtureProbability = 0.1f; // Adjust this value to control the likelihood of generating a new BodyPart
+    float randomValue = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    if (randomValue < newFixtureProbability) {
+        // Create a new randomly generated BodyPart
+
+        b2FixtureDef fixtureDef;
+        fixtureDef.friction = std::min(std::max(0.0f, (float)rand() / RAND_MAX), 1.0f);
+        fixtureDef.restitution = std::min(std::max(0.0f, (float)rand() / RAND_MAX), 1.0f);
+        fixtureDef.density = std::max(0.0f, (float)rand() / RAND_MAX);
+        fixtureDef.isSensor = false;
+
+        b2PolygonShape* newShape = getRandomPolygonShape(5, 2.0f);
+        fixtureDef.shape = newShape;
 
         newBody->CreateFixture(&fixtureDef);
     }

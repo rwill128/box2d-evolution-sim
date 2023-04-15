@@ -313,13 +313,7 @@ void drawPolygon(const b2PolygonShape *polygon, float scale = 1.0f) {
 }
 
 void drawCreature(const b2Body *body, float health) {
-    auto *bodyData = static_cast<BodyData *>(body->GetUserData());
-
-    if (bodyData) {
-        glColor3f(bodyData->r, (bodyData->g * health) / 200, bodyData->b);
-    } else {
-        glColor3f(1, 0, 0);
-    }
+    glColor3f(0, health / 200, 0);
 
     glPushMatrix();
     b2Vec2 boxPosition = body->GetPosition();

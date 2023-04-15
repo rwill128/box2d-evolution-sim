@@ -41,12 +41,8 @@ int main(int argc, char **argv) {
 //    world.SetContactListener(&myContactListener);
 
     // Create a dynamic body
-    auto *creature1 = new Creature();
-    creature1->addBodyPart(Creature::createBodyPart(&world, creature1, 5.0f, 5.0f, 1.0f, 1.0f));
-
-
-    auto *creature2 = new Creature();
-    creature1->addBodyPart(Creature::createBodyPart(&world, creature2, 15.0f, 5.0f, 2.0f, 2.0f));
+    auto *creature1 = new Creature("B(2,3;D;45)F(P;[(0,0),(1,1),(1,0)];1;0.5;0.7)", &world);
+    auto *creature2 = new Creature("B(2,3;D;45)F(P;[(0,0),(1,1),(1,0)];1;0.5;0.7)", &world);
 
     std::list<Creature *> creatureList;
     creatureList.push_back(creature1);
@@ -135,9 +131,6 @@ int main(int argc, char **argv) {
 
             if (contactedBody->GetType() == b2_dynamicBody) {
                 // Perform any desired operations using the contact information
-                auto *bodyData = static_cast<BodyData *>(contactedBody->GetUserData());
-                Creature *parentCreature = bodyData->parentCreature;
-                parentCreature->addToHealth(0.01f);
 
 //                particleSystem->DestroyParticle(particleIndex);
             }

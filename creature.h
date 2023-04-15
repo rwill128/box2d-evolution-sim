@@ -14,89 +14,142 @@
 #include <Box2D/Particle/b2ParticleSystem.h>
 #include <GLFW/glfw3.h>
 #include <vector>
+#include <string>
+#include <iostream>
+#include <sstream>
 
 class Creature;
-
-struct BodyData {
-    // Color components: red, green, blue, alpha
-    float r, g, b, a;
-    Creature *parentCreature;
-
-    BodyData(float red, float green, float blue, float alpha)
-            : r(red), g(green), b(blue), a(alpha) {}
-};
 
 class Creature {
 private:
     float health;
-    float offsetX; // offset values for reproduction
-    float offsetY;
-    std::list<b2Body *> bodyParts; // assuming Box2D bodies make up the creature's body
-public:
-    Creature(std::list<b2Body *> vector) {
-        health = 100.0f;
-        bodyParts = std::move(vector);
-        offsetX = 2.0f;
-        offsetY = 2.0f;
+    std::vector<b2Body *> bodyParts;
+
+    void decodeGeneticCode(const std::string& code) {
+        std::istringstream input(code);
+        char ch;
+
+        b2Body* currentBody = nullptr;
+
+        while (input >> ch) {
+            switch (ch) {
+                case 'B': {
+                    float x, y, angle;
+                    char type;
+                    input.ignore(); // Ignore opening parenthesis
+                    input >> x >> ch >> y >> ch >> type >> ch >> angle;
+                    input.ignore(); // Ignore closing parenthesis
+                    currentBody = createBody(x, y, type, angle);
+                } break;
+
+                case 'F': {
+                    if (currentBody) {
+                        char shapeType;
+                        float density, friction, restitution;
+                        input.ignore(); // Ignore opening parenthesis
+                        input >> shapeType;
+
+                        b2FixtureDef fixtureDef;
+
+                        switch (shapeType) {
+                            case 'P': { // Polygon shape
+                                std::vector<b2Vec2> vertices;
+                                char vertexChar;
+                                float x, y;
+
+                                input.ignore(); // Ignore opening bracket
+
+                                while (input.peek() != ']') {
+                                    input.ignore(); // Ignore opening parenthesis
+                                    input >> x >> ch >> y;
+                                    input.ignore(); // Ignore closing parenthesis
+                                    input >> vertexChar; // Read the next character (comma or closing bracket)
+                                    vertices.push_back(b2Vec2(x, y));
+                                }
+
+                                input.ignore(); // Ignore closing bracket
+
+                                b2PolygonShape polygonShape;
+                                polygonShape.Set(vertices.data(), vertices.size());
+                                fixtureDef.shape = &polygonShape;
+                            } break;
+
+                            case 'C': { // Circle shape
+                                float centerX, centerY, radius;
+                                input.ignore(); // Ignore opening parenthesis
+                                input >> centerX >> ch >> centerY >> ch >> radius;
+                                input.ignore(); // Ignore closing parenthesis
+
+                                b2CircleShape circleShape;
+                                circleShape.m_p.Set(centerX, centerY);
+                                circleShape.m_radius = radius;
+                                fixtureDef.shape = &circleShape;
+                            } break;
+
+                            default:
+                                std::cerr << "Unknown shape type: " << shapeType << std::endl;
+                                return;
+                        }
+
+                        input >> ch >> density >> ch >> friction >> ch >> restitution;
+                        input.ignore(); // Ignore closing parenthesis
+
+                        fixtureDef.density = density;
+                        fixtureDef.friction = friction;
+                        fixtureDef.restitution = restitution;
+
+                        currentBody->CreateFixture(&fixtureDef);
+                    } else {
+                        std::cerr << "Trying to create a fixture without a body." << std::endl;
+                    }
+                } break;
+
+                    // Other cases...
+
+                default:
+                    std::cerr << "Unknown structure type: " << ch << std::endl;
+                    break;
+            }
+        }
     }
 
-    Creature() : health(100.0f), offsetX(2.0f), offsetY(2.0f) {}
+    b2Body* createBody(float x, float y, char type, float angle) {
+        b2BodyDef bodyDef;
+        bodyDef.position.Set(x, y);
+        bodyDef.angle = angle * b2_pi / 180.0f; // Convert to radians
 
-    void setHealth(float h) { health = h; }
+        switch (type) {
+            case 'D': bodyDef.type = b2_dynamicBody; break;
+            case 'S': bodyDef.type = b2_staticBody; break;
+            case 'K': bodyDef.type = b2_kinematicBody; break;
+            default:
+                std::cerr << "Unknown body type: " << type << std::endl;
+                return nullptr;
+        }
+
+        b2Body* body = m_world->CreateBody(&bodyDef);
+        m_bodies.push_back(body);
+
+        return body;
+    }
+
+    b2World* m_world;
+    std::vector<b2Body*> m_bodies;
+
+public:
+
+    Creature(const std::string& geneticCode, b2World* world): m_world(world) {
+        decodeGeneticCode(geneticCode);
+    }
+
+    Creature() : health(100.0f) {}
 
     void addToHealth(float h) { health += h; }
 
     float getHealth() const { return health; }
 
-    const std::list<b2Body *> &getBodyParts() const { return bodyParts; }
+    const std::vector<b2Body *> &getBodyParts() const { return bodyParts; }
 
-    void addBodyPart(b2Body *body) { bodyParts.push_back(body); }
-
-    static b2Body *Creature::createBodyPart(b2World *world, Creature* parentCreature, float x, float y, float width, float height) {
-        // Create the body definition
-        b2BodyDef bodyDef;
-        bodyDef.type = b2_dynamicBody;
-        bodyDef.position.Set(x, y);
-
-        // Create the body in the world
-        b2Body *body = world->CreateBody(&bodyDef);
-
-        // Create the shape
-        b2PolygonShape dynamicBox;
-        dynamicBox.SetAsBox(width / 2.0f, height / 2.0f);
-
-        // Create the fixture
-        b2FixtureDef fixtureDef;
-        fixtureDef.shape = &dynamicBox;
-        fixtureDef.density = 1.0f;
-        fixtureDef.friction = 0.3f;
-
-        // Attach the fixture to the body
-        body->CreateFixture(&fixtureDef);
-
-        // Create the BodyData object with the specified color
-        auto *bodyData = new BodyData(0.0f, 1.0f, 0.0f, 1.0f);
-
-        bodyData->parentCreature = parentCreature;
-
-        // Set the user data of the b2Body
-        body->SetUserData(bodyData);
-
-        // Add the body to the creature
-        return body;
-    }
-
-
-    Creature *reproduce(b2World *world, float mutationRate = 0.1) const;
-
-    // Getter and setter functions for offsetX and offsetY
-    float getOffsetX() const { return offsetX; }
-
-    void setOffsetX(float x) { offsetX = x; }
-
-    float getOffsetY() const { return offsetY; }
-
-    void setOffsetY(float y) { offsetY = y; }
 };
 
 

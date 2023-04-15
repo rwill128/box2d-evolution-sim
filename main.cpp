@@ -41,8 +41,8 @@ int main(int argc, char **argv) {
 //    world.SetContactListener(&myContactListener);
 
     // Create a dynamic body
-    auto *creature1 = new Creature("B(2,3;D;45)F(P;[(0,0),(1,1),(1,0)];1;0.5;0.7)", &world);
-    auto *creature2 = new Creature("B(2,3;D;45)F(P;[(0,0),(1,1),(1,0)];1;0.5;0.7)", &world);
+    auto *creature1 = new Creature("B(2,3;D;45)F(P[(0.0,0.0),(1.0,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
+    auto *creature2 = new Creature("B(2,3;D;45)F(P[(0,0),(1,0),(1,1),(0,1)];1;1;1)", &world);
 
     std::list<Creature *> creatureList;
     creatureList.push_back(creature1);
@@ -170,11 +170,11 @@ int main(int argc, char **argv) {
 
                 creatureToCheck->addToHealth(-100.0f);
 
-                Creature *newCreature = creatureToCheck->reproduce(&world);
+//                Creature *newCreature = creatureToCheck->reproduce(&world);
 
 
                 // Add the new creature to the creatureList
-                newCreatureList.push_back(newCreature);
+//                newCreatureList.push_back(newCreature);
             }
 
         }
@@ -222,9 +222,6 @@ int main(int argc, char **argv) {
     for (Creature *deleteCreature: creatureList) {
         for (b2Body *deleteBody: deleteCreature->getBodyParts()) {
 
-            auto bodyData = static_cast<BodyData *>(deleteBody->GetUserData());
-            delete bodyData;
-
             b2Fixture *fixture = deleteBody->GetFixtureList();
             while (fixture != NULL) {
                 b2Fixture *next = fixture->GetNext();
@@ -253,7 +250,7 @@ b2Body *createWorldBoundaries(b2World &world, float squareWidth) {
     b2BodyDef squareBodyDef;
     squareBodyDef.type = b2_staticBody;
     squareBodyDef.position.Set(0, 0); // You can adjust the position if needed
-    b2Body *squareBody = world.CreateBody(&squareBodyDef);
+    b2Body* squareBody = world.CreateBody(&squareBodyDef);
 
     b2EdgeShape topEdge, bottomEdge, leftEdge, rightEdge;
 

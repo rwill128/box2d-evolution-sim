@@ -23,7 +23,6 @@ class Creature;
 class Creature {
 private:
     float health;
-    std::vector<b2Body *> bodyParts;
 
     void decodeGeneticCode(const std::string& code) {
         std::istringstream input(code);
@@ -36,9 +35,9 @@ private:
                 case 'B': {
                     float x, y, angle;
                     char type;
-                    input.ignore(); // Ignore opening parenthesis
+                    input >> ch; // Ignore opening parenthesis
                     input >> x >> ch >> y >> ch >> type >> ch >> angle;
-                    input.ignore(); // Ignore closing parenthesis
+                    input >> ch; // Ignore closing parenthesis
                     currentBody = createBody(x, y, type, angle);
                 } break;
 
@@ -46,39 +45,40 @@ private:
                     if (currentBody) {
                         char shapeType;
                         float density, friction, restitution;
-                        input.ignore(); // Ignore opening parenthesis
+                        input >> ch; // Ignore opening parenthesis
                         input >> shapeType;
 
                         b2FixtureDef fixtureDef;
+                        b2PolygonShape polygonShape;
 
                         switch (shapeType) {
                             case 'P': { // Polygon shape
                                 std::vector<b2Vec2> vertices;
-                                char vertexChar;
                                 float x, y;
 
-                                input.ignore(); // Ignore opening bracket
+                                input >> ch; // Ignore opening bracket
 
-                                while (input.peek() != ']') {
-                                    input.ignore(); // Ignore opening parenthesis
-                                    input >> x >> ch >> y;
-                                    input.ignore(); // Ignore closing parenthesis
-                                    input >> vertexChar; // Read the next character (comma or closing bracket)
+                                while (ch != ']') {
+                                    input >> ch; // Ignore opening parenthesis
+                                    input >> x;
+                                    input >> ch;
+                                    input >> y;
+                                    input >> ch; // Ignore closing parenthesis
+                                    input >> ch; // Read the next character (comma or closing bracket)
                                     vertices.push_back(b2Vec2(x, y));
                                 }
 
-                                input.ignore(); // Ignore closing bracket
+                                input >> ch; // Ignore closing bracket
 
-                                b2PolygonShape polygonShape;
                                 polygonShape.Set(vertices.data(), vertices.size());
                                 fixtureDef.shape = &polygonShape;
                             } break;
 
                             case 'C': { // Circle shape
                                 float centerX, centerY, radius;
-                                input.ignore(); // Ignore opening parenthesis
+                                input >> ch; // Ignore opening parenthesis
                                 input >> centerX >> ch >> centerY >> ch >> radius;
-                                input.ignore(); // Ignore closing parenthesis
+                                input >> ch; // Ignore closing parenthesis
 
                                 b2CircleShape circleShape;
                                 circleShape.m_p.Set(centerX, centerY);
@@ -91,8 +91,10 @@ private:
                                 return;
                         }
 
-                        input >> ch >> density >> ch >> friction >> ch >> restitution;
-                        input.ignore(); // Ignore closing parenthesis
+                        input >> density;
+                        input >> friction;
+                        input >> restitution;
+                        input >> ch; // Ignore closing parenthesis
 
                         fixtureDef.density = density;
                         fixtureDef.friction = friction;
@@ -139,6 +141,7 @@ private:
 public:
 
     Creature(const std::string& geneticCode, b2World* world): m_world(world) {
+        health = 100;
         decodeGeneticCode(geneticCode);
     }
 
@@ -148,7 +151,7 @@ public:
 
     float getHealth() const { return health; }
 
-    const std::vector<b2Body *> &getBodyParts() const { return bodyParts; }
+    const std::vector<b2Body *> &getBodyParts() const { return m_bodies; }
 
 };
 

@@ -24,11 +24,11 @@ class Creature {
 private:
     float health;
 
-    void decodeGeneticCode(const std::string& code) {
+    void decodeGeneticCode(const std::string &code) {
         std::istringstream input(code);
         char ch;
 
-        b2Body* currentBody = nullptr;
+        b2Body *currentBody = nullptr;
 
         while (input >> ch) {
             switch (ch) {
@@ -39,7 +39,8 @@ private:
                     input >> x >> ch >> y >> ch >> type >> ch >> angle;
                     input >> ch; // Ignore closing parenthesis
                     currentBody = createBody(x, y, type, angle);
-                } break;
+                }
+                    break;
 
                 case 'F': {
                     if (currentBody) {
@@ -48,8 +49,6 @@ private:
                         input >> ch; // Ignore opening parenthesis
                         input >> shapeType;
 
-                        b2FixtureDef fixtureDef;
-                        b2PolygonShape polygonShape;
 
                         switch (shapeType) {
                             case 'P': { // Polygon shape
@@ -70,41 +69,72 @@ private:
 
                                 input >> ch; // Ignore closing bracket
 
+                                b2PolygonShape polygonShape;
                                 polygonShape.Set(vertices.data(), vertices.size());
+
+                                b2FixtureDef fixtureDef;
                                 fixtureDef.shape = &polygonShape;
-                            } break;
+
+                                input >> density;
+                                input >> ch;
+                                input >> friction;
+                                input >> ch;
+                                input >> restitution;
+                                input >> ch; // Ignore closing parenthesis
+
+
+                                fixtureDef.density = density;
+                                fixtureDef.friction = friction;
+                                fixtureDef.restitution = restitution;
+
+                                currentBody->CreateFixture(&fixtureDef);
+                            }
+                                break;
 
                             case 'C': { // Circle shape
                                 float centerX, centerY, radius;
                                 input >> ch; // Ignore opening parenthesis
-                                input >> centerX >> ch >> centerY >> ch >> radius;
+                                input >> centerX;
+                                input >> ch;
+                                input >> centerY;
+                                input >> ch;
+                                input >> radius;
                                 input >> ch; // Ignore closing parenthesis
+                                input >> ch; // Ignore closing separating semicolon
 
                                 b2CircleShape circleShape;
                                 circleShape.m_p.Set(centerX, centerY);
                                 circleShape.m_radius = radius;
+
+                                b2FixtureDef fixtureDef;
                                 fixtureDef.shape = &circleShape;
-                            } break;
+
+                                input >> density;
+                                input >> ch;
+                                input >> friction;
+                                input >> ch;
+                                input >> restitution;
+                                input >> ch; // Ignore closing parenthesis
+
+                                fixtureDef.density = density;
+                                fixtureDef.friction = friction;
+                                fixtureDef.restitution = restitution;
+
+                                currentBody->CreateFixture(&fixtureDef);
+                            }
+                                break;
 
                             default:
                                 std::cerr << "Unknown shape type: " << shapeType << std::endl;
                                 return;
                         }
 
-                        input >> density;
-                        input >> friction;
-                        input >> restitution;
-                        input >> ch; // Ignore closing parenthesis
 
-                        fixtureDef.density = density;
-                        fixtureDef.friction = friction;
-                        fixtureDef.restitution = restitution;
-
-                        currentBody->CreateFixture(&fixtureDef);
                     } else {
                         std::cerr << "Trying to create a fixture without a body." << std::endl;
                     }
-                } break;
+                }
+                    break;
 
                     // Other cases...
 
@@ -115,32 +145,40 @@ private:
         }
     }
 
-    b2Body* createBody(float x, float y, char type, float angle) {
+    b2Body *createBody(float x, float y, char type, float angle) {
         b2BodyDef bodyDef;
         bodyDef.position.Set(x, y);
         bodyDef.angle = angle * b2_pi / 180.0f; // Convert to radians
 
         switch (type) {
-            case 'D': bodyDef.type = b2_dynamicBody; break;
-            case 'S': bodyDef.type = b2_staticBody; break;
-            case 'K': bodyDef.type = b2_kinematicBody; break;
+            case 'D':
+                bodyDef.type = b2_dynamicBody;
+                break;
+            case 'S':
+                bodyDef.type = b2_staticBody;
+                break;
+            case 'K':
+                bodyDef.type = b2_kinematicBody;
+                break;
             default:
                 std::cerr << "Unknown body type: " << type << std::endl;
                 return nullptr;
         }
 
-        b2Body* body = m_world->CreateBody(&bodyDef);
+        b2Body *body = m_world->CreateBody(&bodyDef);
+        body->SetUserData(this);
+
         m_bodies.push_back(body);
 
         return body;
     }
 
-    b2World* m_world;
-    std::vector<b2Body*> m_bodies;
+    b2World *m_world;
+    std::vector<b2Body *> m_bodies;
 
 public:
 
-    Creature(const std::string& geneticCode, b2World* world): m_world(world) {
+    Creature(const std::string &geneticCode, b2World *world) : m_world(world) {
         health = 100;
         decodeGeneticCode(geneticCode);
     }

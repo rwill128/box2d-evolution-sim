@@ -227,7 +227,7 @@ void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *part
 
 
     // Clear the screen
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0.8, 0.8, 0.8, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw world boundaries
@@ -312,6 +312,23 @@ void drawPolygon(const b2PolygonShape *polygon, float scale = 1.0f) {
     glEnd();
 }
 
+void drawCircle(const b2CircleShape *circle, float scale = 1.0f, int numSegments = 32) {
+    float radius = circle->m_radius * scale;
+    b2Vec2 center = circle->m_p * scale;
+    float angleIncrement = 2 * M_PI / numSegments;
+
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex2f(center.x, center.y);
+
+    for (int i = 0; i <= numSegments; ++i) {
+        float angle = i * angleIncrement;
+        float x = center.x + radius * cos(angle);
+        float y = center.y + radius * sin(angle);
+        glVertex2f(x, y);
+    }
+    glEnd();
+}
+
 void drawCreature(const b2Body *body, float health) {
     glColor3f(0, health / 200, 0);
 
@@ -329,7 +346,9 @@ void drawCreature(const b2Body *body, float health) {
             // Draw the polygon shape
             b2PolygonShape *polygonShape = dynamic_cast<b2PolygonShape *>(fixture->GetShape());
             drawPolygon(polygonShape);
-        } else {
+        } else if (shapeType == b2Shape::e_circle) {
+            b2CircleShape *circlShape = dynamic_cast<b2CircleShape *>(fixture->GetShape());
+            drawCircle(circlShape);
             // Handle other shape types if needed (e.g., b2Shape::e_circle)
         }
     }

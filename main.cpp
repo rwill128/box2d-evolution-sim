@@ -8,9 +8,9 @@
 #include <chrono>
 
 
-static const float WORLD_SIZE = 100.0f;
+static const float WORLD_SIZE = 20.0f;
 
-b2Body *createWorldBoundaries(b2World &world, float squareWidth);
+void createWorldBoundaries(b2World *world, float worldWidth, float worldHeight);
 
 void clampCreaturePositions(std::list<Creature *> creatureList, float minX, float maxX, float minY, float maxY) {
     for (Creature *creature: creatureList) {
@@ -32,26 +32,33 @@ int main(int argc, char **argv) {
 
 
     // Create a world with gravity
-    b2Vec2 gravity(0.0f, -1.0f);
+    b2Vec2 gravity(0.0f, -10.0f);
     b2World world(gravity);
 
-    createWorldBoundaries(world, WORLD_SIZE);
 
 //    WaterContactListener myContactListener;
 //    world.SetContactListener(&myContactListener);
 
     // Create a dynamic body
-    auto *creature1 = new Creature("B(2,3;D;45)F(P[(0.0,0.0),(1.0,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
-    auto *creature2 = new Creature("B(2,3;D;45)F(P[(0,0),(1,0),(1,1),(0,1)];1;1;1)", &world);
+    auto *creature1 = new Creature("B(2,4;D;45)F(P[(0.0,0.0),(1.0,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
+    auto *creature2 = new Creature("B(2,5;D;45)F(P[(0,0),(1,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
+    auto *creature3 = new Creature("B(10,5;D;45)F(P[(0,0),(1,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
+    auto *creature4 = new Creature("B(10,5;D;45)F(P[(0,0),(1,0),(1,1),(0,2)];0.5;0.5;0.5)", &world);
+    auto *creature5 = new Creature("B(5,5;D;0)F(C(0,0;1);0.5;0.5;0.5)", &world);
+
+    createWorldBoundaries(&world, WORLD_SIZE, WORLD_SIZE);
 
     std::list<Creature *> creatureList;
     creatureList.push_back(creature1);
     creatureList.push_back(creature2);
+    creatureList.push_back(creature3);
+    creatureList.push_back(creature4);
+    creatureList.push_back(creature5);
 
     // Create a particle system
     b2ParticleSystemDef particleSystemDef;
     particleSystemDef.radius = 0.1f;
-//    particleSystemDef.gravityScale = 0.01f;
+    particleSystemDef.gravityScale = 0.00f;
 //    particleSystemDef.powderStrength = 3.0f;
     particleSystemDef.surfaceTensionNormalStrength = 1.0f;
     particleSystemDef.surfaceTensionPressureStrength = 1.0f;
@@ -60,7 +67,7 @@ int main(int argc, char **argv) {
 
     // Create a particle group
     b2PolygonShape airParticlesShape;
-    airParticlesShape.SetAsBox(4, 4);
+    airParticlesShape.SetAsBox(2, 2);
 
     b2ParticleGroupDef particleGroupDef;
     particleGroupDef.shape = &airParticlesShape;
@@ -80,12 +87,12 @@ int main(int argc, char **argv) {
     // Run the physics simulation and render the scene
     while (!glfwWindowShouldClose(window)) {
 
-        float minX = 0.5f;
-        float maxX = WORLD_SIZE - 0.5f;
-        float minY = 0.5f;
-        float maxY = WORLD_SIZE - 0.5f;
+        float minX = 1.5f;
+        float maxX = WORLD_SIZE - 1.5f;
+        float minY = 1.5f;
+        float maxY = WORLD_SIZE - 1.5f;
 
-        clampCreaturePositions(creatureList, minX, maxX, minY, maxY);
+//        clampCreaturePositions(creatureList, minX, maxX, minY, maxY);
 
         // Define the minimum number of particles
         const int32 minParticleCount = 600;
@@ -131,6 +138,10 @@ int main(int argc, char **argv) {
 
             if (contactedBody->GetType() == b2_dynamicBody) {
                 // Perform any desired operations using the contact information
+                Creature* creatureA = static_cast<Creature*>(contactedBody->GetUserData());
+
+                creatureA->addToHealth(1.0);
+
 
 //                particleSystem->DestroyParticle(particleIndex);
             }
@@ -245,39 +256,45 @@ int main(int argc, char **argv) {
 }
 
 
-b2Body *createWorldBoundaries(b2World &world, float squareWidth) {
+#include <Box2D/Box2D.h>
 
-    b2BodyDef squareBodyDef;
-    squareBodyDef.type = b2_staticBody;
-    squareBodyDef.position.Set(0, 0); // You can adjust the position if needed
-    b2Body* squareBody = world.CreateBody(&squareBodyDef);
+void createWorldBoundaries(b2World *world, float worldWidth, float worldHeight) {
+    const float boundaryThickness = 1.0f;
 
-    b2EdgeShape topEdge, bottomEdge, leftEdge, rightEdge;
+    // Define the shape, fixture, and body for the boundaries
+    b2PolygonShape boundaryShape;
+    b2FixtureDef boundaryFixtureDef;
+    boundaryFixtureDef.shape = &boundaryShape;
+    boundaryFixtureDef.density = 1.0f; // Static bodies don't need density
+    boundaryFixtureDef.friction = 0.3f;
+    boundaryFixtureDef.restitution = 0.5f;
 
-    // Set the vertices of the edge shapes
-    topEdge.Set(b2Vec2(0, squareWidth), b2Vec2(squareWidth, squareWidth));
-    bottomEdge.Set(b2Vec2(0, 0), b2Vec2(squareWidth, 0));
-    leftEdge.Set(b2Vec2(0, 0), b2Vec2(0, squareWidth));
-    rightEdge.Set(b2Vec2(squareWidth, 0), b2Vec2(squareWidth, squareWidth));
+    // Create four static bodies (left, right, top, and bottom)
+    b2BodyDef boundaryBodyDef;
+    boundaryBodyDef.type = b2_staticBody;
 
-    b2FixtureDef squareFixtureDef;
-    squareFixtureDef.density = 0; // Static bodies don't need density
-    squareFixtureDef.restitution = 0.5f; // Adjust the restitution (bounciness) if needed
-    squareFixtureDef.friction = 0.5f; // Adjust the friction if needed
+    // Left boundary
+    boundaryShape.SetAsBox(boundaryThickness / 2.0f, worldHeight / 2.0f);
+    boundaryBodyDef.position.Set(-boundaryThickness / 2.0f, worldHeight / 2.0f);
+    b2Body *leftBoundary = world->CreateBody(&boundaryBodyDef);
+    leftBoundary->CreateFixture(&boundaryFixtureDef);
 
-    // Attach the edge shapes to the square body
-    squareFixtureDef.shape = &topEdge;
-    squareBody->CreateFixture(&squareFixtureDef);
+    // Right boundary
+    boundaryShape.SetAsBox(boundaryThickness / 2.0f, worldHeight / 2.0f);
+    boundaryBodyDef.position.Set(worldWidth + boundaryThickness / 2.0f, worldHeight / 2.0f);
+    b2Body *rightBoundary = world->CreateBody(&boundaryBodyDef);
+    rightBoundary->CreateFixture(&boundaryFixtureDef);
 
-    squareFixtureDef.shape = &bottomEdge;
-    squareBody->CreateFixture(&squareFixtureDef);
+    // Top boundary
+    boundaryShape.SetAsBox(worldWidth / 2.0f, boundaryThickness / 2.0f);
+    boundaryBodyDef.position.Set(worldWidth / 2.0f, -boundaryThickness / 2.0f);
+    b2Body *topBoundary = world->CreateBody(&boundaryBodyDef);
+    topBoundary->CreateFixture(&boundaryFixtureDef);
 
-    squareFixtureDef.shape = &leftEdge;
-    squareBody->CreateFixture(&squareFixtureDef);
-
-    squareFixtureDef.shape = &rightEdge;
-    squareBody->CreateFixture(&squareFixtureDef);
-
-    return squareBody;
+    // Bottom boundary
+    boundaryShape.SetAsBox(worldWidth / 2.0f, boundaryThickness / 2.0f);
+    boundaryBodyDef.position.Set(worldWidth / 2.0f, worldHeight + boundaryThickness / 2.0f);
+    b2Body *bottomBoundary = world->CreateBody(&boundaryBodyDef);
+    bottomBoundary->CreateFixture(&boundaryFixtureDef);
 }
 

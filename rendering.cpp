@@ -312,6 +312,20 @@ void drawPolygon(const b2PolygonShape *polygon, float scale = 1.0f) {
     glEnd();
 }
 
+void drawLine(const b2EdgeShape *edgeShape, float scale = 1.0f) {
+    glLineWidth(2.0f);
+
+    glBegin(GL_LINES);
+
+    b2Vec2 vertex0 = edgeShape->m_vertex0 * scale;
+    glVertex2f(vertex0.x, vertex0.y);
+
+    b2Vec2 vertex1 = edgeShape->m_vertex1 * scale;
+    glVertex2f(vertex1.x, vertex1.y);
+
+    glEnd();
+}
+
 void drawCircle(const b2CircleShape *circle, float scale = 1.0f, int numSegments = 32) {
     float radius = circle->m_radius * scale;
     b2Vec2 center = circle->m_p * scale;
@@ -350,6 +364,9 @@ void drawCreature(const b2Body *body, float health) {
             b2CircleShape *circlShape = dynamic_cast<b2CircleShape *>(fixture->GetShape());
             drawCircle(circlShape);
             // Handle other shape types if needed (e.g., b2Shape::e_circle)
+        } else if (shapeType == b2Shape::e_edge) {
+            b2EdgeShape *edgeShape = dynamic_cast<b2EdgeShape *>(fixture->GetShape());
+            drawLine(edgeShape);
         }
     }
 

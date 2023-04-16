@@ -27,13 +27,86 @@ void clampCreaturePositions(std::list<Creature *> creatureList, float minX, floa
     }
 }
 
-std::string mutate(const std::string& geneticCode, float mutationRate) {
+
+#include <algorithm>
+#include <iterator>
+#include <stdexcept>
+
+std::string perform_translocation_deletion_and_substitution(const std::string &geneticCode, float mutationRate) {
     std::istringstream input(geneticCode);
+    std::ostringstream output;
+    std::string buffer;
+    std::vector<std::string> chunks;
+
+    std::mt19937 gen(std::random_device{}());
+    std::uniform_real_distribution<> probDist(0, 1);
+    std::uniform_int_distribution<> operationDist(1, 3); // 1 for deletion, 2 for duplication, 3 for translocation
+
+    // Read the immutable part (body definition) and write it to the output
+    std::getline(input, buffer, '|');
+    output << buffer;
+
+    // Split the input into chunks, delimited by '|'
+    while (std::getline(input, buffer, '|')) {
+        chunks.push_back(buffer);
+    }
+
+    // Perform the mutation operations
+    for (size_t i = 0; i < chunks.size(); ++i) {
+        if (probDist(gen) <= mutationRate) {
+            int operation = operationDist(gen);
+            size_t targetIndex;
+
+            switch (operation) {
+                case 1: // Deletion
+                    if (chunks.size() > 1) { // Check if there's more than one chunk
+                        chunks.erase(chunks.begin() + i);
+                        i--; // Decrement i so that the next iteration processes the same index
+                    }
+                    break;
+
+                case 2: // Duplication
+                    targetIndex = (i + 1) % chunks.size();
+                    chunks.insert(chunks.begin() + targetIndex, chunks[i]);
+                    i++; // Increment i so that the next iteration processes the index after the inserted chunk
+                    break;
+
+                case 3: // Translocation
+                    if (chunks.size() > 1) {
+                        do {
+                            targetIndex = std::uniform_int_distribution<>(0, chunks.size() - 1)(gen);
+                        } while (targetIndex == i);
+
+                        std::swap(chunks[i], chunks[targetIndex]);
+                    }
+                    break;
+
+                default:
+                    throw std::runtime_error("Unknown mutation operation");
+            }
+        }
+    }
+
+    // Write the mutated chunks to the output
+    for (const auto &chunk: chunks) {
+        output << '|' << chunk;
+    }
+
+    output << '|';
+
+    return output.str();
+}
+
+
+std::string mutate(const std::string &geneticCode, float mutationRate) {
+
+    std::string translocated_genetic_code = perform_translocation_deletion_and_substitution(geneticCode, mutationRate);
+
+    std::istringstream input(translocated_genetic_code);
     std::ostringstream output;
 
     std::mt19937 gen(std::random_device{}());
     std::uniform_real_distribution<> mutationDist(-mutationRate, mutationRate);
-    std::uniform_real_distribution<> probDist(0, 1);
 
     char ch;
     float minLimit, maxLimit;
@@ -77,14 +150,38 @@ int main(int argc, char **argv) {
 //    WaterContactListener myContactListener;
 //    world.SetContactListener(&myContactListener);
 
-    std::string mutatedString = mutate("B(2,4;D;45)F(P[(0.0,0.0),(1.0,0),(1,1),(0,1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", 0.1);
+    std::string mutatedString1 = mutate(
+            "B(2,4;D;45)|F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),({-10.0,10.0}1.0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+            0.1);
+    std::string mutatedString2 = mutate(
+            "B(2,4;D;45)|F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),({-10.0,10.0}1.0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+            0.1);
+    std::string mutatedString3 = mutate(
+            "B(5,5;D;0)|F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)|F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+            0.1);
+    std::string mutatedString4 = mutate(
+            "B(5,5;D;0)|F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)|F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+            0.1);
 
     // Create a dynamic body
-    auto *creature1 = new Creature("B(2,4;D;45)F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),({-10.0,10.0}1.0,{-10.0,10.0}0.0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
-    auto *creature2 = new Creature("B(2,5;D;45)F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}0,{-10.0,10.0}1),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0.75,{-10.0,10.0}.25)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
-    auto *creature3 = new Creature("B(10,5;D;45)F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
-    auto *creature4 = new Creature("B(10,5;D;45)F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}2)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
-    auto *creature5 = new Creature("B(5,5;D;0)F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
+    auto *creature1 = new Creature(mutate("B(2,4;D;45)"
+                                          "|F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),"
+                                          "({-10.0,10.0}1.0,{-10.0,10.0}0.0),"
+                                          "({-10.0,10.0}1,{-10.0,10.0}1),"
+                                          "({-10.0,10.0}0,{-10.0,10.0}1)];"
+                                          "{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|", 0.1), &world);
+    auto *creature2 = new Creature(
+            mutate("B(2,5;D;45)|F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}0,{-10.0,10.0}1),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0.75,{-10.0,10.0}.25)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+                   0.1), &world);
+    auto *creature3 = new Creature(
+            mutate("B(10,5;D;45)|F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+                   0.1), &world);
+    auto *creature4 = new Creature(
+            mutate("B(10,5;D;45)|F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}2)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+                   0.1), &world);
+    auto *creature5 = new Creature(
+            mutate("B(5,5;D;0)|F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)|F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
+                   0.1), &world);
 
     createWorldBoundaries(&world, WORLD_SIZE, WORLD_SIZE);
 
@@ -127,13 +224,6 @@ int main(int argc, char **argv) {
     // Run the physics simulation and render the scene
     while (!glfwWindowShouldClose(window)) {
 
-        float minX = 1.5f;
-        float maxX = WORLD_SIZE - 1.5f;
-        float minY = 1.5f;
-        float maxY = WORLD_SIZE - 1.5f;
-
-//        clampCreaturePositions(creatureList, minX, maxX, minY, maxY);
-
         // Define the minimum number of particles
         const int32 minParticleCount = 600;
 
@@ -173,17 +263,14 @@ int main(int argc, char **argv) {
             const b2ParticleBodyContact &contact = bodyContacts[i];
 
             // Get the indices of the particle and body involved in the contact
-            int32 particleIndex = contact.index;
             b2Body *contactedBody = contact.body;
 
             if (contactedBody->GetType() == b2_dynamicBody) {
                 // Perform any desired operations using the contact information
-                Creature* creatureA = static_cast<Creature*>(contactedBody->GetUserData());
+                Creature *creatureA = static_cast<Creature *>(contactedBody->GetUserData());
 
                 creatureA->addToHealth(0.1);
 
-
-//                particleSystem->DestroyParticle(particleIndex);
             }
         }
 
@@ -196,7 +283,7 @@ int main(int argc, char **argv) {
         // Process creature growth
         for (Creature *creatureToCheck: creatureList) {
 
-            for (b2Body* movingBody : creatureToCheck->getBodyParts()) {
+            for (b2Body *movingBody: creatureToCheck->getBodyParts()) {
 
                 // Define the random number generator with a seed based on current time
                 std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
@@ -214,7 +301,7 @@ int main(int argc, char **argv) {
 
             }
 
-            creatureToCheck->addToHealth(-0.02f);
+            creatureToCheck->incurTimeStepCost(0.02f);
 
             // Reproduce successful creatures
             if (creatureToCheck->getHealth() > 1000.0f) {

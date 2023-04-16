@@ -24,6 +24,7 @@ class Creature;
 class Creature {
 private:
     float health;
+    float mass;
     std::string m_geneticCode;
 
     void decodeGeneticCode(const std::string &code) {
@@ -40,6 +41,7 @@ private:
                     input >> ch; // Ignore opening parenthesis
                     input >> x >> ch >> y >> ch >> type >> ch >> angle;
                     input >> ch; // Ignore closing parenthesis
+                    input >> ch; // Ignore the |
                     currentBody = createBody(x, y, type, angle);
                 }
                     break;
@@ -83,7 +85,7 @@ private:
                                 input >> ch;
                                 input >> restitution;
                                 input >> ch; // Ignore closing parenthesis
-
+                                input >> ch; // Ignore the |
 
                                 fixtureDef.density = density;
                                 fixtureDef.friction = friction;
@@ -117,6 +119,7 @@ private:
                                 input >> ch;
                                 input >> restitution;
                                 input >> ch; // Ignore closing parenthesis
+                                input >> ch; // Ignore the |
 
                                 fixtureDef.density = density;
                                 fixtureDef.friction = friction;
@@ -125,6 +128,41 @@ private:
                                 currentBody->CreateFixture(&fixtureDef);
                             }
                                 break;
+
+//                            case 'E': { // Edge shape
+//                                float x1, y1, x2, y2;
+//                                input >> ch; // Ignore opening parenthesis
+//                                input >> x1;
+//                                input >> ch;
+//                                input >> y1;
+//                                input >> ch;
+//                                input >> x2;
+//                                input >> ch;
+//                                input >> y2;
+//                                input >> ch; // Ignore closing parenthesis
+//                                input >> ch; // Skip semicolon
+//
+//                                b2EdgeShape edgeShape;
+//                                edgeShape.Set(b2Vec2(x1, y1), b2Vec2(x2, y2));
+//                                edgeShape.m_type
+//
+//                                b2FixtureDef fixtureDef;
+//                                fixtureDef.shape = &edgeShape;
+//
+//                                input >> density;
+//                                input >> ch;
+//                                input >> friction;
+//                                input >> ch;
+//                                input >> restitution;
+//                                input >> ch; // Ignore closing parenthesis
+//
+//                                fixtureDef.density = density;
+//                                fixtureDef.friction = friction;
+//                                fixtureDef.restitution = restitution;
+//
+//                                currentBody->CreateFixture(&fixtureDef);
+//                            }
+//                                break;
 
                             default:
                                 std::cerr << "Unknown shape type: " << shapeType << std::endl;
@@ -192,15 +230,26 @@ public:
 
     Creature(const std::string &geneticCode, b2World *world) : m_geneticCode(geneticCode), m_world(world) {
         health = 100;
+        mass = 0.0f;
 
         decodeGeneticCode(stripCurlyBraces(geneticCode));
+
+        for (b2Body *body: m_bodies) {
+            mass += body->GetMass();
+        }
     }
 
     Creature() : health(100.0f) {}
 
     void addToHealth(float h) { health += h; }
 
+    void incurTimeStepCost(float costMultiplier) {
+        health -= costMultiplier * mass;
+    }
+
     float getHealth() const { return health; }
+
+    float getMass() const { return mass; }
 
     std::string getGeneticCode() const { return m_geneticCode; }
 

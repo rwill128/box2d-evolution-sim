@@ -150,47 +150,36 @@ int main(int argc, char **argv) {
 //    WaterContactListener myContactListener;
 //    world.SetContactListener(&myContactListener);
 
-    std::string mutatedString1 = mutate(
-            "B(2,4;D;45)|F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),({-10.0,10.0}1.0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-            0.1);
-    std::string mutatedString2 = mutate(
-            "B(2,4;D;45)|F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),({-10.0,10.0}1.0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-            0.1);
-    std::string mutatedString3 = mutate(
-            "B(5,5;D;0)|F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)|F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-            0.1);
-    std::string mutatedString4 = mutate(
-            "B(5,5;D;0)|F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)|F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-            0.1);
+    // Create a b2Body with a square b2Fixture
+    b2BodyDef bodyDef;
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position.Set(5.0f, 5.0f);
+    b2Body *boxBody = world.CreateBody(&bodyDef);
 
-    // Create a dynamic body
-    auto *creature1 = new Creature(mutate("B(2,4;D;45)"
-                                          "|F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),"
-                                          "({-10.0,10.0}1.0,{-10.0,10.0}0.0),"
-                                          "({-10.0,10.0}1,{-10.0,10.0}1),"
-                                          "({-10.0,10.0}0,{-10.0,10.0}1)];"
-                                          "{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|", 0.1), &world);
-    auto *creature2 = new Creature(
-            mutate("B(2,5;D;45)|F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}0,{-10.0,10.0}1),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0.75,{-10.0,10.0}.25)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-                   0.1), &world);
-    auto *creature3 = new Creature(
-            mutate("B(10,5;D;45)|F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-                   0.1), &world);
-    auto *creature4 = new Creature(
-            mutate("B(10,5;D;45)|F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}2)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-                   0.1), &world);
-    auto *creature5 = new Creature(
-            mutate("B(5,5;D;0)|F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)|F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)|",
-                   0.1), &world);
+    b2PolygonShape boxShape;
+    boxShape.SetAsBox(0.5f, 0.5f); // A 1x1 square has half-width and half-height of 0.5
+
+    b2FixtureDef fixtureDef;
+    fixtureDef.shape = &boxShape;
+    fixtureDef.density = 1.0f;
+    fixtureDef.friction = 0.3f;
+    fixtureDef.restitution = 0.5f;
+
+    boxBody->CreateFixture(&fixtureDef);
+
+    // Create a vector containing the created b2Body
+    std::vector<b2Body *> bodies = {boxBody};
+
+    // Create a Creature object using the public constructor
+    float startingHealth = 100.0f;
+    float energyToContribute = 50.0f;
+    int numberOfOffspring = 2;
+    Creature creature = Creature(bodies, &world, startingHealth, energyToContribute, numberOfOffspring);
 
     createWorldBoundaries(&world, WORLD_SIZE, WORLD_SIZE);
 
-    std::list<Creature *> creatureList;
-    creatureList.push_back(creature1);
-    creatureList.push_back(creature2);
-    creatureList.push_back(creature3);
-    creatureList.push_back(creature4);
-    creatureList.push_back(creature5);
+    std::vector<Creature *> creatureList;
+    creatureList.push_back(&creature);
 
     // Create a particle system
     b2ParticleSystemDef particleSystemDef;
@@ -278,7 +267,7 @@ int main(int argc, char **argv) {
         // Step the world
         world.Step(timeStep, velocityIterations, positionIterations, particleIterations);
 
-        std::list<Creature *> newCreatureList;
+        std::vector<Creature *> newCreatureList;
 
         // Process creature growth
         for (Creature *creatureToCheck: creatureList) {
@@ -301,22 +290,20 @@ int main(int argc, char **argv) {
 
             }
 
-            creatureToCheck->incurTimeStepCost(0.02f);
+            creatureToCheck->addToHealth(-0.02f);
 
             // Reproduce successful creatures
             if (creatureToCheck->getHealth() > 1000.0f) {
 
-                creatureToCheck->addToHealth(-900.0f);
-
-                Creature *newCreature = new Creature(mutate(creatureToCheck->getGeneticCode(), 0.1), &world);
+                std::vector<Creature *> children = creatureToCheck->reproduce(&world);
 
 //                 Add the new creature to the creatureList
-                newCreatureList.push_back(newCreature);
+                newCreatureList.insert(newCreatureList.end(), children.begin(), children.end());
             }
 
         }
 
-        creatureList.splice(creatureList.end(), newCreatureList);
+        creatureList.insert(creatureList.end(), newCreatureList.begin(), newCreatureList.end());
 
         // Draw the scene
         drawScene(creatureList, particleSystem, WORLD_SIZE);
@@ -326,9 +313,6 @@ int main(int argc, char **argv) {
             // Remove dead creatures
             // Check if the creature is dead
             if (creatureToCheck->getHealth() < 1.0f) {
-
-                Creature *newCreature = new Creature(mutate(creatureToCheck->getGeneticCode(), 0.1), &world);
-                newCreatureList.push_back(newCreature);
 
                 for (b2Body *bodyPart: creatureToCheck->getBodyParts()) {
                     // Remove all fixtures attached to the body

@@ -217,7 +217,7 @@ void cleanUpScene() {
     glDeleteProgram(shaderProgram);
 }
 
-void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *particleSystem, float worldSize) {
+void drawScene(const std::vector<Creature *> &creatureList, b2ParticleSystem *particleSystem, float worldSize) {
 
     updateCamera();
 

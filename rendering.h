@@ -15,7 +15,7 @@
 
 
 void cleanUpScene();
-void drawScene(const std::list<Creature *> &creatureList, b2ParticleSystem *particleSystem, float worldSize);
+void drawScene(const std::vector<Creature *> &creatureList, b2ParticleSystem *particleSystem, float worldSize);
 void drawCreature(const b2Body *body, float d);
 GLFWwindow* initGLFW();
 

@@ -131,8 +131,8 @@ public:
         }
     }
 
-    std::vector<Creature> reproduce(b2World *world) {
-        std::vector<Creature> offspring;
+    std::vector<Creature *> reproduce(b2World *world) {
+        std::vector<Creature *> offspring;
 
         // Calculate the energy contributed to each child
         float energyPerChild = energyToContributeToChildren / numberOfOffspring;
@@ -141,10 +141,22 @@ public:
         // Create new Creatures with mutated copies of the body parts
         for (int i = 0; i < numberOfOffspring; ++i) {
             Creature child(this, world, energyPerChild, inheritedMutationRate);
-            offspring.push_back(child);
+            offspring.push_back(&child);
         }
 
         return offspring;
+    }
+
+    void addToHealth(float amount) {
+        health += amount;
+    }
+
+    float getHealth() {
+        return health;
+    }
+
+    std::vector<b2Body *> getBodyParts() {
+        return m_bodies;
     }
 
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(liquidfun_evo_sim)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(LIQUIDFUN_INCLUDE_DIR "C:/Users/rwill/CLionProjects/liquidfun/liquidfun/Box2D/Box2D")
 set(LIQUIDFUN_LIBRARY "C:/Users/rwill/CLionProjects/liquidfun/liquidfun/Box2D/Box2D/Debug")
 

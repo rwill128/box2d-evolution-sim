@@ -27,24 +27,64 @@ void clampCreaturePositions(std::list<Creature *> creatureList, float minX, floa
     }
 }
 
+std::string mutate(const std::string& geneticCode, float mutationRate) {
+    std::istringstream input(geneticCode);
+    std::ostringstream output;
+
+    std::mt19937 gen(std::random_device{}());
+    std::uniform_real_distribution<> mutationDist(-mutationRate, mutationRate);
+    std::uniform_real_distribution<> probDist(0, 1);
+
+    char ch;
+    float minLimit, maxLimit;
+    bool mutateNext = false;
+
+    while (input.get(ch)) {
+        if (ch == '{') {
+            input >> minLimit;
+            input.ignore(1); // Ignore the comma
+            input >> maxLimit;
+            input.ignore(1); // Ignore the closing curly brace
+            mutateNext = true;
+
+            // Output the minLimit and maxLimit along with the curly braces
+            output << '{' << minLimit << ',' << maxLimit << '}';
+        } else if (mutateNext && std::isdigit(ch)) {
+            input.putback(ch);
+            float value;
+            input >> value;
+            value += mutationDist(gen);
+            value = std::clamp(value, minLimit, maxLimit);
+            output << value;
+            mutateNext = false;
+        } else {
+            output << ch;
+        }
+    }
+
+    return output.str();
+}
+
 
 int main(int argc, char **argv) {
 
 
     // Create a world with gravity
-    b2Vec2 gravity(0.0f, -10.0f);
+    b2Vec2 gravity(0.0f, 0.0f);
     b2World world(gravity);
 
 
 //    WaterContactListener myContactListener;
 //    world.SetContactListener(&myContactListener);
 
+    std::string mutatedString = mutate("B(2,4;D;45)F(P[(0.0,0.0),(1.0,0),(1,1),(0,1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", 0.1);
+
     // Create a dynamic body
-    auto *creature1 = new Creature("B(2,4;D;45)F(P[(0.0,0.0),(1.0,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
-    auto *creature2 = new Creature("B(2,5;D;45)F(P[(0,0),(1,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
-    auto *creature3 = new Creature("B(10,5;D;45)F(P[(0,0),(1,0),(1,1),(0,1)];0.5;0.5;0.5)", &world);
-    auto *creature4 = new Creature("B(10,5;D;45)F(P[(0,0),(1,0),(1,1),(0,2)];0.5;0.5;0.5)", &world);
-    auto *creature5 = new Creature("B(5,5;D;0)F(C(0,0;1);0.5;0.5;0.5)", &world);
+    auto *creature1 = new Creature("B(2,4;D;45)F(P[({-10.0,10.0}0.0,{-10.0,10.0}0.0),({-10.0,10.0}1.0,{-10.0,10.0}0.0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
+    auto *creature2 = new Creature("B(2,5;D;45)F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}0,{-10.0,10.0}1),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0.75,{-10.0,10.0}.25)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
+    auto *creature3 = new Creature("B(10,5;D;45)F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}1)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
+    auto *creature4 = new Creature("B(10,5;D;45)F(P[({-10.0,10.0}0,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}0),({-10.0,10.0}1,{-10.0,10.0}1),({-10.0,10.0}0,{-10.0,10.0}2)];{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
+    auto *creature5 = new Creature("B(5,5;D;0)F(C({-10.0,10.0}0,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.1,5.0}0.5;{0.1,5.0}0.5)F(C({-10.0,10.0}3,{-10.0,10.0}0;{-10.0,10.0}1);{0.1,5.0}0.5;{0.0,1.0}0.5;{0.0,1.0}0.5)", &world);
 
     createWorldBoundaries(&world, WORLD_SIZE, WORLD_SIZE);
 
@@ -140,7 +180,7 @@ int main(int argc, char **argv) {
                 // Perform any desired operations using the contact information
                 Creature* creatureA = static_cast<Creature*>(contactedBody->GetUserData());
 
-                creatureA->addToHealth(1.0);
+                creatureA->addToHealth(0.1);
 
 
 //                particleSystem->DestroyParticle(particleIndex);
@@ -177,15 +217,14 @@ int main(int argc, char **argv) {
             creatureToCheck->addToHealth(-0.02f);
 
             // Reproduce successful creatures
-            if (creatureToCheck->getHealth() > 200.0f) {
+            if (creatureToCheck->getHealth() > 1000.0f) {
 
-                creatureToCheck->addToHealth(-100.0f);
+                creatureToCheck->addToHealth(-900.0f);
 
-//                Creature *newCreature = creatureToCheck->reproduce(&world);
+                Creature *newCreature = new Creature(mutate(creatureToCheck->getGeneticCode(), 0.1), &world);
 
-
-                // Add the new creature to the creatureList
-//                newCreatureList.push_back(newCreature);
+//                 Add the new creature to the creatureList
+                newCreatureList.push_back(newCreature);
             }
 
         }
@@ -200,6 +239,10 @@ int main(int argc, char **argv) {
             // Remove dead creatures
             // Check if the creature is dead
             if (creatureToCheck->getHealth() < 1.0f) {
+
+                Creature *newCreature = new Creature(mutate(creatureToCheck->getGeneticCode(), 0.1), &world);
+                newCreatureList.push_back(newCreature);
+
                 for (b2Body *bodyPart: creatureToCheck->getBodyParts()) {
                     // Remove all fixtures attached to the body
                     b2Fixture *fixture = bodyPart->GetFixtureList();

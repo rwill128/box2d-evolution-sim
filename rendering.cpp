@@ -330,7 +330,7 @@ void drawCircle(const b2CircleShape *circle, float scale = 1.0f, int numSegments
 }
 
 void drawCreature(const b2Body *body, float health) {
-    glColor3f(0, health / 200, 0);
+    glColor3f(0, health / 1000, 0);
 
     glPushMatrix();
     b2Vec2 boxPosition = body->GetPosition();

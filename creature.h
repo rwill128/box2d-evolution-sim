@@ -17,12 +17,14 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <regex>
 
 class Creature;
 
 class Creature {
 private:
     float health;
+    std::string m_geneticCode;
 
     void decodeGeneticCode(const std::string &code) {
         std::istringstream input(code);
@@ -178,9 +180,20 @@ private:
 
 public:
 
-    Creature(const std::string &geneticCode, b2World *world) : m_world(world) {
+
+    std::string stripCurlyBraces(const std::string &input) {
+        // Define the regular expression to match everything inside curly braces.
+        const std::regex pattern("\\{[^\\}]*\\}");
+
+        // Replace all occurrences of the regular expression with an empty string.
+        return std::regex_replace(input, pattern, "");
+    }
+
+
+    Creature(const std::string &geneticCode, b2World *world) : m_geneticCode(geneticCode), m_world(world) {
         health = 100;
-        decodeGeneticCode(geneticCode);
+
+        decodeGeneticCode(stripCurlyBraces(geneticCode));
     }
 
     Creature() : health(100.0f) {}
@@ -188,6 +201,8 @@ public:
     void addToHealth(float h) { health += h; }
 
     float getHealth() const { return health; }
+
+    std::string getGeneticCode() const { return m_geneticCode; }
 
     const std::vector<b2Body *> &getBodyParts() const { return m_bodies; }
 

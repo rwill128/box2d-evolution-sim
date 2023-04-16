@@ -18,244 +18,139 @@
 #include <iostream>
 #include <sstream>
 #include <regex>
-
-class Creature;
+#include <random>
 
 class Creature {
 private:
     float health;
     float mass;
-    std::string m_geneticCode;
-
-    void decodeGeneticCode(const std::string &code) {
-        std::istringstream input(code);
-        char ch;
-
-        b2Body *currentBody = nullptr;
-
-        while (input >> ch) {
-            switch (ch) {
-                case 'B': {
-                    float x, y, angle;
-                    char type;
-                    input >> ch; // Ignore opening parenthesis
-                    input >> x >> ch >> y >> ch >> type >> ch >> angle;
-                    input >> ch; // Ignore closing parenthesis
-                    input >> ch; // Ignore the |
-                    currentBody = createBody(x, y, type, angle);
-                }
-                    break;
-
-                case 'F': {
-                    if (currentBody) {
-                        char shapeType;
-                        float density, friction, restitution;
-                        input >> ch; // Ignore opening parenthesis
-                        input >> shapeType;
-
-
-                        switch (shapeType) {
-                            case 'P': { // Polygon shape
-                                std::vector<b2Vec2> vertices;
-                                float x, y;
-
-                                input >> ch; // Ignore opening bracket
-
-                                while (ch != ']') {
-                                    input >> ch; // Ignore opening parenthesis
-                                    input >> x;
-                                    input >> ch;
-                                    input >> y;
-                                    input >> ch; // Ignore closing parenthesis
-                                    input >> ch; // Read the next character (comma or closing bracket)
-                                    vertices.push_back(b2Vec2(x, y));
-                                }
-
-                                input >> ch; // Ignore closing bracket
-
-                                b2PolygonShape polygonShape;
-                                polygonShape.Set(vertices.data(), vertices.size());
-
-                                b2FixtureDef fixtureDef;
-                                fixtureDef.shape = &polygonShape;
-
-                                input >> density;
-                                input >> ch;
-                                input >> friction;
-                                input >> ch;
-                                input >> restitution;
-                                input >> ch; // Ignore closing parenthesis
-                                input >> ch; // Ignore the |
-
-                                fixtureDef.density = density;
-                                fixtureDef.friction = friction;
-                                fixtureDef.restitution = restitution;
-
-                                currentBody->CreateFixture(&fixtureDef);
-                            }
-                                break;
-
-                            case 'C': { // Circle shape
-                                float centerX, centerY, radius;
-                                input >> ch; // Ignore opening parenthesis
-                                input >> centerX;
-                                input >> ch;
-                                input >> centerY;
-                                input >> ch;
-                                input >> radius;
-                                input >> ch; // Ignore closing parenthesis
-                                input >> ch; // Ignore closing separating semicolon
-
-                                b2CircleShape circleShape;
-                                circleShape.m_p.Set(centerX, centerY);
-                                circleShape.m_radius = radius;
-
-                                b2FixtureDef fixtureDef;
-                                fixtureDef.shape = &circleShape;
-
-                                input >> density;
-                                input >> ch;
-                                input >> friction;
-                                input >> ch;
-                                input >> restitution;
-                                input >> ch; // Ignore closing parenthesis
-                                input >> ch; // Ignore the |
-
-                                fixtureDef.density = density;
-                                fixtureDef.friction = friction;
-                                fixtureDef.restitution = restitution;
-
-                                currentBody->CreateFixture(&fixtureDef);
-                            }
-                                break;
-
-//                            case 'E': { // Edge shape
-//                                float x1, y1, x2, y2;
-//                                input >> ch; // Ignore opening parenthesis
-//                                input >> x1;
-//                                input >> ch;
-//                                input >> y1;
-//                                input >> ch;
-//                                input >> x2;
-//                                input >> ch;
-//                                input >> y2;
-//                                input >> ch; // Ignore closing parenthesis
-//                                input >> ch; // Skip semicolon
-//
-//                                b2EdgeShape edgeShape;
-//                                edgeShape.Set(b2Vec2(x1, y1), b2Vec2(x2, y2));
-//                                edgeShape.m_type
-//
-//                                b2FixtureDef fixtureDef;
-//                                fixtureDef.shape = &edgeShape;
-//
-//                                input >> density;
-//                                input >> ch;
-//                                input >> friction;
-//                                input >> ch;
-//                                input >> restitution;
-//                                input >> ch; // Ignore closing parenthesis
-//
-//                                fixtureDef.density = density;
-//                                fixtureDef.friction = friction;
-//                                fixtureDef.restitution = restitution;
-//
-//                                currentBody->CreateFixture(&fixtureDef);
-//                            }
-//                                break;
-
-                            default:
-                                std::cerr << "Unknown shape type: " << shapeType << std::endl;
-                                return;
-                        }
-
-
-                    } else {
-                        std::cerr << "Trying to create a fixture without a body." << std::endl;
-                    }
-                }
-                    break;
-
-                    // Other cases...
-
-                default:
-                    std::cerr << "Unknown structure type: " << ch << std::endl;
-                    break;
-            }
-        }
-    }
-
-    b2Body *createBody(float x, float y, char type, float angle) {
-        b2BodyDef bodyDef;
-        bodyDef.position.Set(x, y);
-        bodyDef.angle = angle * b2_pi / 180.0f; // Convert to radians
-
-        switch (type) {
-            case 'D':
-                bodyDef.type = b2_dynamicBody;
-                break;
-            case 'S':
-                bodyDef.type = b2_staticBody;
-                break;
-            case 'K':
-                bodyDef.type = b2_kinematicBody;
-                break;
-            default:
-                std::cerr << "Unknown body type: " << type << std::endl;
-                return nullptr;
-        }
-
-        b2Body *body = m_world->CreateBody(&bodyDef);
-        body->SetUserData(this);
-
-        m_bodies.push_back(body);
-
-        return body;
-    }
+    float energyToContributeToChildren;
+    float inheritedMutationRate;
+    int numberOfOffspring;
 
     b2World *m_world;
     std::vector<b2Body *> m_bodies;
 
-public:
+    b2BodyDef copyBodyDef(b2Body* originalBody) {
+        b2BodyDef bodyDef;
 
+        bodyDef.type = originalBody->GetType();
+        bodyDef.position = originalBody->GetPosition();
+        bodyDef.angle = originalBody->GetAngle();
+        bodyDef.linearDamping = originalBody->GetLinearDamping();
+        bodyDef.angularDamping = originalBody->GetAngularDamping();
+        bodyDef.fixedRotation = originalBody->IsFixedRotation();
+        bodyDef.bullet = originalBody->IsBullet();
+        bodyDef.gravityScale = originalBody->GetGravityScale();
 
-    std::string stripCurlyBraces(const std::string &input) {
-        // Define the regular expression to match everything inside curly braces.
-        const std::regex pattern("\\{[^\\}]*\\}");
-
-        // Replace all occurrences of the regular expression with an empty string.
-        return std::regex_replace(input, pattern, "");
+        return bodyDef;
     }
 
 
-    Creature(const std::string &geneticCode, b2World *world) : m_geneticCode(geneticCode), m_world(world) {
-        health = 100;
+    b2Body* copyBodyWithMutation(b2Body* originalBody, b2World* world, float mutationRate) {
+        // Copy the body definition from the original body
+        b2BodyDef bodyDef = copyBodyDef(originalBody);
+
+        // Create a random number generator
+        std::mt19937 gen(std::random_device{}());
+        std::uniform_real_distribution<> mutationDist(-mutationRate, mutationRate);
+
+        // Mutate the position
+        float dx = mutationDist(gen);
+        float dy = mutationDist(gen);
+        bodyDef.position.x += dx;
+        bodyDef.position.y += dy;
+
+        // Mutate the angle
+        float angleMutation = mutationDist(gen);
+        bodyDef.angle += angleMutation;
+
+        // Create a new body using the mutated body definition
+        b2Body* newBody = world->CreateBody(&bodyDef);
+
+        // Copy the fixtures from the original body to the new body
+        for (b2Fixture* originalFixture = originalBody->GetFixtureList(); originalFixture; originalFixture = originalFixture->GetNext()) {
+            b2FixtureDef fixtureDef;
+            fixtureDef.shape = originalFixture->GetShape();
+
+            // Mutate the density, friction, and restitution
+            float mutatedDensity = std::max(0.0f, originalFixture->GetDensity() + (float) mutationDist(gen));
+            float mutatedFriction = std::clamp(originalFixture->GetFriction() + (float) mutationDist(gen), 0.0f, 1.0f);
+            float mutatedRestitution = std::clamp(originalFixture->GetRestitution() + (float) mutationDist(gen), 0.0f, 1.0f);
+
+            fixtureDef.density = mutatedDensity;
+            fixtureDef.friction = mutatedFriction;
+            fixtureDef.restitution = mutatedRestitution;
+
+            fixtureDef.isSensor = originalFixture->IsSensor();
+            fixtureDef.filter = originalFixture->GetFilterData();
+
+            newBody->CreateFixture(&fixtureDef);
+        }
+
+        return newBody;
+    }
+
+    Creature(Creature* parent, b2World *world, float energyContribution, float mutationRate) : m_world(world) {
+        health = energyContribution;
+
+        // Mutate energyToContributeToChildren and numberOfOffspring
+        std::mt19937 gen(std::random_device{}());
+        std::uniform_real_distribution<> mutationDist(-mutationRate, mutationRate);
+        float energyToContributeToChildrenMutation = 1.0f + mutationDist(gen);
+        float numberOfOffspringMutation = 1.0f + mutationDist(gen);
+
+        energyToContributeToChildren = parent->energyToContributeToChildren * energyToContributeToChildrenMutation;
+        numberOfOffspring = std::round(parent->numberOfOffspring * numberOfOffspringMutation);
+
+        // Ensure numberOfOffspring is at least 1
+        numberOfOffspring = std::max(1, numberOfOffspring);
+        energyToContributeToChildren = std::max(1.0f, energyToContributeToChildren);
+
         mass = 0.0f;
 
-        decodeGeneticCode(stripCurlyBraces(geneticCode));
-
-        for (b2Body *body: m_bodies) {
-            mass += body->GetMass();
+        // Create mutated copies of the original bodies from the parent and add them to m_bodies
+        for (b2Body *originalBody : parent->m_bodies) {
+            b2Body *mutatedBody = copyBodyWithMutation(originalBody, world, mutationRate);
+            m_bodies.push_back(mutatedBody);
+            mass += mutatedBody->GetMass();
         }
     }
 
-    Creature() : health(100.0f) {}
 
-    void addToHealth(float h) { health += h; }
+public:
+    Creature(const std::vector<b2Body *> &originalBodies, b2World *world, float startingHealth, float energyToContribute, int numberOfOffSpringP) : m_world(world), energyToContributeToChildren(energyToContribute) {
+        health = startingHealth;
+        mass = 0.0f;
+        numberOfOffspring = numberOfOffSpringP;
 
-    void incurTimeStepCost(float costMultiplier) {
-        health -= costMultiplier * mass;
+        // Create mutated copies of the original bodies and add them to m_bodies
+        for (b2Body *originalBody : originalBodies) {
+            m_bodies.push_back(originalBody);
+            mass += originalBody->GetMass();
+        }
     }
 
-    float getHealth() const { return health; }
+    std::vector<Creature> reproduce(b2World *world) {
+        std::vector<Creature> offspring;
 
-    float getMass() const { return mass; }
+        // Calculate the energy contributed to each child
+        float energyPerChild = energyToContributeToChildren / numberOfOffspring;
+        this->health -= energyToContributeToChildren;
 
-    std::string getGeneticCode() const { return m_geneticCode; }
+        // Create new Creatures with mutated copies of the body parts
+        for (int i = 0; i < numberOfOffspring; ++i) {
+            Creature child(this, world, energyPerChild, inheritedMutationRate);
+            offspring.push_back(child);
+        }
 
-    const std::vector<b2Body *> &getBodyParts() const { return m_bodies; }
+        return offspring;
+    }
 
+
+    // Other methods, like drawing, updating physics, etc.
 };
+;
 
 
 #endif //LIQUIDFUN_EVO_SIM_CREATURE_H

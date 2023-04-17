@@ -98,9 +98,11 @@ private:
         std::mt19937 gen(std::random_device{}());
         std::uniform_real_distribution<> mutationDist(-mutationRate, mutationRate);
         float energyToContributeToChildrenMutation = 1.0f + mutationDist(gen);
+        float inheritedMutationRateMutation = 1.0f + mutationDist(gen);
         float numberOfOffspringMutation = 1.0f + mutationDist(gen);
 
         energyToContributeToChildren = parent->energyToContributeToChildren * energyToContributeToChildrenMutation;
+        inheritedMutationRate = parent->inheritedMutationRate * inheritedMutationRateMutation;
         numberOfOffspring = std::round(parent->numberOfOffspring * numberOfOffspringMutation);
 
         // Ensure numberOfOffspring is at least 1
@@ -112,6 +114,7 @@ private:
         // Create mutated copies of the original bodies from the parent and add them to m_bodies
         for (b2Body *originalBody : parent->m_bodies) {
             b2Body *mutatedBody = copyBodyWithMutation(originalBody, world, mutationRate);
+            mutatedBody->SetUserData(this);
             m_bodies.push_back(mutatedBody);
             mass += mutatedBody->GetMass();
         }
@@ -119,13 +122,15 @@ private:
 
 
 public:
-    Creature(const std::vector<b2Body *> &originalBodies, b2World *world, float startingHealth, float energyToContribute, int numberOfOffSpringP) : m_world(world), energyToContributeToChildren(energyToContribute) {
+    Creature(const std::vector<b2Body *> &originalBodies, b2World *world, float startingHealth, float energyToContribute, int numberOfOffSpringP, float inheritedMutationRateP) : m_world(world), energyToContributeToChildren(energyToContribute) {
         health = startingHealth;
         mass = 0.0f;
         numberOfOffspring = numberOfOffSpringP;
+        inheritedMutationRate = inheritedMutationRateP;
 
         // Create mutated copies of the original bodies and add them to m_bodies
         for (b2Body *originalBody : originalBodies) {
+            originalBody->SetUserData(this);
             m_bodies.push_back(originalBody);
             mass += originalBody->GetMass();
         }

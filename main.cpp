@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 
 
     // Create a world with gravity
-    b2Vec2 gravity(0.0f, 0.0f);
+    b2Vec2 gravity(0.0f, -10.0f);
     b2World world(gravity);
 
 
@@ -171,10 +171,11 @@ int main(int argc, char **argv) {
     std::vector<b2Body *> bodies = {boxBody};
 
     // Create a Creature object using the public constructor
-    float startingHealth = 100.0f;
+    float startingHealth = 1000.0f;
     float energyToContribute = 50.0f;
     int numberOfOffspring = 2;
-    Creature creature = Creature(bodies, &world, startingHealth, energyToContribute, numberOfOffspring);
+    float mutationRate = 0.1f;
+    Creature creature = Creature(bodies, &world, startingHealth, energyToContribute, numberOfOffspring, mutationRate);
 
     createWorldBoundaries(&world, WORLD_SIZE, WORLD_SIZE);
 
@@ -184,7 +185,7 @@ int main(int argc, char **argv) {
     // Create a particle system
     b2ParticleSystemDef particleSystemDef;
     particleSystemDef.radius = 0.1f;
-    particleSystemDef.gravityScale = 0.00f;
+    particleSystemDef.gravityScale = 0.1f;
 //    particleSystemDef.powderStrength = 3.0f;
     particleSystemDef.surfaceTensionNormalStrength = 1.0f;
     particleSystemDef.surfaceTensionPressureStrength = 1.0f;

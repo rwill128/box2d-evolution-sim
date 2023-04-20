@@ -15,11 +15,11 @@ find_package(OpenGL REQUIRED)
 
 
 add_executable(liquidfun_evo_sim
-        main.cpp
-        rendering.cpp
-        rendering.h
-        creature.cpp
-        creature.h
+        src/main.cpp
+        src/rendering.cpp
+        src/rendering.h
+        src/creature.cpp
+        src/creature.h
         )
 
 target_link_libraries(liquidfun_evo_sim PRIVATE OpenGL::GL OpenGL::GLU
